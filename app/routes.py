@@ -31,3 +31,15 @@ def handle_disconnect():
 def send_frame():
     for frame in generate_frames():
         socketio.emit('frame', frame)
+
+@Socketio.on('message')
+def handle_message(data):
+    print('Received message:', data)
+    # Broadcast the message to all connected clients
+    socketio.emit('message', data)
+
+# Add more custom events as needed
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=9999, allow_unsafe_werkzeug=True)
+
