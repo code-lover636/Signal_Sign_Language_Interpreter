@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Call App</title>
+</head>
+<body>
+    <h1>Video Call App</h1>
+
+    <input type="text" id="roomInput" placeholder="Enter Room Name">
+    <button id="joinButton">Join</button>
+    <button id="leaveButton">Leave</button>
+
+    <video id="localVideo" autoplay muted></video>
+    <video id="remoteVideo" autoplay></video>
+
+    <textarea id="messageInput" placeholder="Enter Message"></textarea>
+    <button id="sendMessage">Send Message</button>
+
+    <div id="messages"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        let localStream;
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+
+        document.getElementById('joinButton').addEventListener('click', () => {
+            const room = document.getElementById('roomInput').value;
+            socket.emit('join', { room: room });
+            startLocalStream();
+        });
+
+        document.getElementById('leaveButton').addEventListener('click', () => {
+            const room = document.getElementById('roomInput').value;
+            socket.emit('leave', { room: room });
+            stopLocalStream();
+        });
+
+        document.getElementById('sendMessage').addEventListener('click', () => {
+            const room = document.getElementById('roomInput').value;
+            const message = document.getElementById('messageInput').value;
+            socket.emit('message', { room: room, message: message });
+            displayMessage('You: ' + message);
+        });
+
+        socket.on('joined', (data) => {
+            displayMessage('Joined room: ' + data.room);
+        });
+
+        socket.on('left', (data) => {
+            displayMessage('Left room: ' + data.room);
+        });
+
+        socket.on('message', (data) => {
+            displayMessage('Other: ' + data.message);
+        });
+
+        function startLocalStream() {
+            navigator.mediaDevices
+                .getUserMedia({ video: true, audio: true })
+                .then((stream) => {
+                    localStream = stream;
+                    localVideo.srcObject = stream;
+                })
+                .catch((error) => {
+                    console.error('Error accessing the camera and microphone: ' + error);
+                });
+        }
+
+        function stopLocalStream() {
+            localStream.getTracks().forEach((track) => {
+                track.stop();
+            });
+            localVideo.srcObject = null;
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const p = document.createElement('p');
+            p.innerText = message;
+            messagesDiv.appendChild(p);
+        }
+    </script>
+</body>
+</html>

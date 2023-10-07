@@ -1,33 +1,41 @@
-import pickle
-import struct
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit, join_room, leave_room
+import threading
 
-from flask import Flask, render_template, Response
-from flask_socketio import SocketIO
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
-from app import app
+active_rooms = set()  # To keep track of active rooms
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # Create an HTML template for your interface
+    return render_template('index.html')
 
-def generate_frames():
-    vid = cv2.VideoCapture(0)
-    while True:
-        ret, image = vid.read()
-        img_serialize = pickle.dumps(image)
-        message = struct.pack("Q", len(img_serialize)) + img_serialize
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + message + b'\r\n')
+@socketio.on('join')
+def handle_join(data):
+    room = data['room']
+    join_room(room)
+    active_rooms.add(room)  # Store the room as an active room
+    emit('joined', {'room': room}, room=room)
 
-@SocketIO.on('connect')
-def handle_connect():
-    print('Client connected')
+@socketio.on('leave')
+def handle_leave(data):
+    room = data['room']
+    leave_room(room)
+    active_rooms.remove(room)  # Remove the room from the list of active rooms
+    emit('left', {'room': room}, room=room)
 
-@SocketIO.on('disconnect')
+@socketio.on('message')
+def handle_message(data):
+    room = data['room']
+    message = data['message']
+    emit('message', {'message': message}, room=room)
+
+@socketio.on('disconnect')
 def handle_disconnect():
-    print('Client disconnected')
+    for room in active_rooms:
+        leave_room(room)
 
-@SocketIO.on('request_frame')
-def send_frame():
-    for frame in generate_frames():
-        socketio.emit('frame', frame)
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
