@@ -15,15 +15,23 @@ max_features_per_sample = 171
 for dir_name in os.listdir("./data"):
     counter = 0
     for img_path in os.listdir(os.path.join('./data', dir_name)):
-        if counter >= 1200:  # Limit to 10 samples per class
+        if counter >= 1000:  # Limit to 10 samples per class
             break
 
         data_aux = []
         x_ = []
         y_ = []
 
-        img = cv2.imread(os.path.join('./data', dir_name, img_path))
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        try:
+            img = cv2.imread(os.path.join('./data', dir_name, img_path))
+            if img is None:
+                raise Exception("Failed to load image: {}".format(img_path))
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        except Exception as e:
+            print("Error loading image:", e)
+            print(dir_name,img_path)
+            continue  # Skip this image and move to the next one
+
 
         results = hands.process(img_rgb)
         if results.multi_hand_landmarks:

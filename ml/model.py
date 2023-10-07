@@ -1,3 +1,6 @@
+from sklearnex import patch_sklearn
+patch_sklearn()
+
 import pickle
 
 from sklearn.ensemble import RandomForestClassifier
