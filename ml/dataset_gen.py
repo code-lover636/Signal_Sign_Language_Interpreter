@@ -1,71 +1,38 @@
 import os
 import pickle
-import mediapipe as mp
-import cv2
-import numpy as np
+import tensorflow as tf
+assert tf.__version__.startswith('2')
 
-hands = mp.solutions.hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
+from mediapipe_model_maker import image_classifier
 
-data = []
-signs = []
+import matplotlib.pyplot as plt
 
-# Define the maximum number of features (landmark coordinates) per sample
-max_features_per_sample = 171
+image_path = './data'
 
-for dir_name in os.listdir("./data"):
-    counter = 0
-    for img_path in os.listdir(os.path.join('./data', dir_name)):
-        if counter >= 1000:  # Limit to 10 samples per class
-            break
-
-        data_aux = []
-        x_ = []
-        y_ = []
-
-        try:
-            img = cv2.imread(os.path.join('./data', dir_name, img_path))
-            if img is None:
-                raise Exception("Failed to load image: {}".format(img_path))
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        except Exception as e:
-            print("Error loading image:", e)
-            print(dir_name,img_path)
-            continue  # Skip this image and move to the next one
+print(image_path)
+labels = []
+for i in os.listdir(image_path):
+  if os.path.isdir(os.path.join(image_path, i)):
+    labels.append(i)
+print(labels)
 
 
-        results = hands.process(img_rgb)
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                for i in range(len(hand_landmarks.landmark)):
-                    x = hand_landmarks.landmark[i].x
-                    y = hand_landmarks.landmark[i].y
+NUM_EXAMPLES = 5
 
-                    x_.append(x)
-                    y_.append(y)
+data = image_classifier.Dataset.from_folder(image_path)
+train_data, remaining_data = data.split(0.8)
+test_data, validation_data = remaining_data.split(0.5)
 
-            max_x = max(x_)
-            max_y = max(y_)
+spec = image_classifier.SupportedModels.MOBILENET_V2
+hparams = image_classifier.HParams(export_dir="exported_model")
+options = image_classifier.ImageClassifierOptions(supported_model=spec, hparams=hparams)
 
-            for i in range(len(x_)):
-                data_aux.append(x_[i] / max_x)
-                data_aux.append(y_[i] / max_y)
+model = image_classifier.ImageClassifier.create(
+    train_data = train_data,
+    validation_data = validation_data,
+    options=options,
+)
 
-            # Pad or truncate data_aux to have max_features_per_sample elements
-            if len(data_aux) < max_features_per_sample:
-                data_aux += [0] * (max_features_per_sample - len(data_aux))
-            elif len(data_aux) > max_features_per_sample:
-                data_aux = data_aux[:max_features_per_sample]
-
-            data.append(data_aux)
-            signs.append(dir_name)
-
-        counter += 1
-
-# Convert data and signs to NumPy arrays
-data = np.array(data)
-signs = np.array(signs)
-
-# Save the generated dataset
-f = open('./data.pickle', 'wb')
-pickle.dump({'data': data, 'signs': signs}, f)
-f.close()
+loss, acc = model.evaluate(test_data)
+print(f'Test loss:{loss}, Test accuracy:{acc}')
+pickle.dump(model,open("model.p","wp"))
