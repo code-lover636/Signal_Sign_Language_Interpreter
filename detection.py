@@ -3,7 +3,7 @@ import mediapipe as mp
 import pickle
 import numpy as np
 
-model = pickle.load(open('./model.pickle', 'rb'))
+#model = pickle.load(open('./model.pickle', 'rb'))
 # model = model_dict['model']
 
 cap = cv2.VideoCapture(0)
@@ -43,35 +43,35 @@ while cap.isOpened():
             #     y = hand_landmarks.landmark[i].y
             #     data_aux.append(x - min(x_))
             #     data_aux.append(y - min(y_))
-        max_x = max(x_)
-        max_y = max(y_)
+        # max_x = max(x_)
+        # max_y = max(y_)
 
-        # x1 = int(min(x_) * W) - 10
-        # y1 = int(min(y_) * H) - 10
+        # # x1 = int(min(x_) * W) - 10
+        # # y1 = int(min(y_) * H) - 10
 
-        # x2 = int(max(x_) * W) - 10
-        # y2 = int(max(y_) * H) - 10
-        for i in range(len(x_)):
-            data_aux.append(x_[i] / max_x)
-            data_aux.append(y_[i] / max_y)
+        # # x2 = int(max(x_) * W) - 10
+        # # y2 = int(max(y_) * H) - 10
+        # for i in range(len(x_)):
+        #     data_aux.append(x_[i] / max_x)
+        #     data_aux.append(y_[i] / max_y)
         
-        # Pad or truncate data_aux to have max_features_per_sample elements
-        if len(data_aux) < max_features_per_sample:
-                data_aux += [0] * (max_features_per_sample - len(data_aux))
-        elif len(data_aux) > max_features_per_sample:
-                data_aux = data_aux[:max_features_per_sample]
+        # # Pad or truncate data_aux to have max_features_per_sample elements
+        # if len(data_aux) < max_features_per_sample:
+        #         data_aux += [0] * (max_features_per_sample - len(data_aux))
+        # elif len(data_aux) > max_features_per_sample:
+        #         data_aux = data_aux[:max_features_per_sample]
 
-        # data.append(data_aux)
-        # signs.append(dir_name)
+        # # data.append(data_aux)
+        # # signs.append(dir_name)
             
-        prediction = model.predict([np.asarray(data_aux)])
+        # prediction = model.predict([np.asarray(data_aux)])
 
-        predicted_character = prediction[0]
+        # predicted_character = prediction[0]
 
-        # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
-        # cv2.putText(frame, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3,
-        #             cv2.LINE_AA)
-        print(predicted_character)
+        # # cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
+        # # cv2.putText(frame, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3,
+        # #             cv2.LINE_AA)
+        # print(predicted_character)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     cv2.imshow("frame", image)
     if cv2.waitKey(1) == ord('q'):
