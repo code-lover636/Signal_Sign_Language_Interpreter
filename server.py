@@ -1,40 +1,42 @@
-# Importing the required libraries for the code
-import socket  # Used to create a socket and that is the main component in network
-import cv2  # Uses frame by frame data and sends it over the sockets to simulate a video call
-import pickle #
+import cv2
+import pickle
 import struct
+from flask import Flask, render_template, Response
+from flask_socketio import SocketIO
 
-# Socket Created for server
-# the tcp protocol is SOCK.STREAM
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host_ip = "localhost"  # Using "localhost" for testing on the same machine
-port = 9999
-socket_address = (host_ip, port)
+app = Flask(__name__)
+socketio = SocketIO(app)
 
-# Socket Bind
-server_socket.bind(socket_address)
+@app.route('/')
+def index():
+    return render_template('index.html')  # Create an HTML template for your interface
 
-# Socket Listenif
-server_socket.listen(1)
-print("Listening at:", socket_address)
+def generate_frames():
+    vid = cv2.VideoCapture(0)
+    while True:
+        ret, image = vid.read()
+        img_serialize = pickle.dumps(image)
+        message = struct.pack("Q", len(img_serialize)) + img_serialize
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + message + b'\r\n')
 
-# Socket Accept
-while True:
-    client_socket, addr = server_socket.accept()
-    print('Connected to:', addr)
-    if client_socket:
-        vid = cv2.VideoCapture(0)
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
 
-        while vid.isOpened():
-            ret, image = vid.read()
-            img_serialize = pickle.dumps(image)
-            message = struct.pack("Q", len(img_serialize)) + img_serialize
-            client_socket.sendall(message)
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
 
-            cv2.imshow('Video from Server', image)
-            key = cv2.waitKey(10)
-            if cv2.waitKey(1) == ord('q'):
-                break
+@socketio.on('request_frame')
+def send_frame():
+    for frame in generate_frames():
+        socketio.emit('frame', frame)
 
-        vid.release()
-        cv2.destroyAllWindows()
+if __name__ == '__main__':
+    app.debug = True  # Enable debugging
+    socketio.run(app, host='0.0.0.0', port=9999, allow_unsafe_werkzeug=True)
+
+
+
+
