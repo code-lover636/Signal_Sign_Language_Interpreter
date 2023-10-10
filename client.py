@@ -7,7 +7,7 @@ import struct
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # server ip address here
-host_ip = "106.194.38.84" #Replace with the actual server's IP address
+host_ip = "192.168.101.210" #Replace with the actual server's IP address
 port = 9999
 
 #connects to the server socket
@@ -33,4 +33,8 @@ while True:
     key = cv2.waitKey(10)
     if key == 13:
         break
+    if key == ord('q'):  # Press 'q' to exit and close the video window
+        break
+
+cv2.destroyAllWindows()
 client_socket.close()
